@@ -19,7 +19,7 @@ pipeline {
         }
 
         stage('Trufflehog stage'){
-            stepd{
+            steps{
                 sh 'docker run --rm -v "$(pwd):/proj" dxa4481/trufflehog file:///proj --json | tee trufflehog-output.json'
             }
         }
