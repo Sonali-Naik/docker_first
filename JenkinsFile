@@ -17,6 +17,12 @@ pipeline {
                 sh "docker run --user \$(id -u):\$(id -g) -v \$(pwd):/src --rm secfigo/bandit bandit -r /src -f json -o /src/bandit-output.json | exit 0"
             }
         }
+
+        stage('Trufflehog stage'){
+            stepd{
+                sh 'docker run --rm -v "$(pwd):/proj" dxa4481/trufflehog file:///proj --json | tee trufflehog-output.json'
+            }
+        }
         
         stage('Building our image') { 
             steps { 
