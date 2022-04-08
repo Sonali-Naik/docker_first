@@ -1,60 +1,64 @@
-pipeline { 
-    environment { 
-        registry = "sonali137/python-flask-app" 
-        registryCredential = 'sonalidockerid' 
-        dockerImage = '' 
+pipeline {
+    environment {
+        registry = "nishanthkp/python-flask-app"
+        registryCredential = "nishanthdockerhubcreds"
+        dockerImage = ''
     }
-    agent any 
-    stages { 
-        stage('Cloning our Git') { 
-            steps { 
-                git branch:'main', url: 'https://github.com/Sonali-Naik/docker_first.git' 
-            }
-        } 
-        
-        stage('Securing up') {
-            steps{
-                sh "docker run --user \$(id -u):\$(id -g) -v \$(pwd):/src --rm secfigo/bandit bandit -r /src -f json -o /src/bandit-output.json | exit 0"
+    agent any
+    stages {
+        stage('Cloning the Code') {
+            steps {
+                echo 'Cloning the Code from Git'
+                git branch:'main', url: 'https://github.com/nishanthkumarpathi/python-flask-app.git'
             }
         }
-
-        stage('Trufflehog stage'){
-            steps{
-                sh 'docker run --rm -v "$(pwd):/proj" dxa4481/trufflehog file:///proj --json | tee trufflehog-output.json'
+        stage('Testing') {
+            parallel {
+                stage('SCA using Bandit') {
+                    steps {
+                        echo 'Scanning the Source Code using Bandit'
+                        sh 'docker run --user $(id -u):$(id -g) -v $(pwd):/src --rm secfigo/bandit bandit -r /src -f json -o /src/bandit-output.json | exit 0'
+                    }
+                }
+                stage('Git Secret using TruffleHog') {
+                    steps {
+                        echo 'Scan the git repo using Trufflehog'
+                        sh 'docker run --user $(id -u):$(id -g) --rm -v "$(pwd):/proj" dxa4481/trufflehog file:///proj --json | tee trufflehog-output.json'
+                    }
+                }
+                stage('Flake8') {
+                    steps {
+                        echo 'Flake8 Scaning'
+                        //docker run -ti --rm -v $(pwd):/apps alpine/flake8:3.5.0
+                        //sh 'python3 -m flake8 . --format=json --output-file flake8-output.json --exit-zero'
+                        sh 'docker run -ti --rm -v $(pwd):/apps alpine/flake8:3.5.0 flake8 /apps/ --format=json --output-file flake8-output.json --exit-zero'
+                    }
+                }
+                
             }
-        }
-
-        stage('flake8 stage'){
-            
-            steps{
-                echo "scanning flake8"
-                sh 'flake8 . --format=json --output-file test.json --exit-zero'
-            }
-        }
-        
-        stage('Building our image') { 
-            steps { 
-                script { 
-                    dockerImage = docker.build registry + ":$BUILD_NUMBER" 
+        }    
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build registry + ":$BUILD_NUMBER"
                 }
             }
-        } 
-        stage('Deploy our image') { 
-            steps { 
-                script { 
-                    docker.withRegistry( '', registryCredential ) { 
-                        dockerImage.push() 
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('',registryCredential) {
+                        dockerImage.push()
                     }
-                } 
+                }
             }
-        } 
-        
-        stage('Cleaning up') { 
-            steps { 
-                sh "docker rmi $registry:$BUILD_NUMBER" 
+        }
+        stage('Delete Docker Image from Local Computer') {
+            steps {
+                echo 'Deleting the Docker Image'
+                sh "docker rmi $registry:$BUILD_NUMBER"
             }
-        } 
-
+        }
         stage('Deploy to Kubernetes Dev Environment') {
             steps {
                 echo 'Deploy the App using Kubectl'
@@ -71,7 +75,7 @@ pipeline {
             input {
                 message "Do you want to Promote the Build to Production"
                 ok "Ok"
-                submitter "sonali13796@gmail.com"
+                submitter "pathinishant@gmail.com"
                 submitterParameter "whoIsSubmitter"
                 
             }
@@ -84,16 +88,10 @@ pipeline {
                 sh "kubectl apply -f python-flask-deployment.yml"
             }
         }
-        
-        
-        
-        
     }
-    
-    post{
-            
-            always{
-                archiveArtifacts artifacts: 'test.json',onlyIfSuccessful:true
-            }
+    post {
+        always {
+            archiveArtifacts artifacts: 'bandit-output.json',onlyIfSuccessful: true
         }
+    }
 }
