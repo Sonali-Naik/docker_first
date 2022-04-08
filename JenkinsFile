@@ -25,8 +25,9 @@ pipeline {
         }
 
         stage('flake8 stage'){
-            echo "scanning flake8"
+            
             steps{
+                echo "scanning flake8"
                 sh 'flake8 . --format=json --output-file test.json --exit-zero'
             }
         }
@@ -90,9 +91,7 @@ pipeline {
     }
     
     post{
-            always{
-                archiveArtifacts artifacts: 'bandit-output.json',onlyIfSuccessful:true
-            }
+            
             always{
                 archiveArtifacts artifacts: 'test.json',onlyIfSuccessful:true
             }
