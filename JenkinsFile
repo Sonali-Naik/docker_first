@@ -23,6 +23,13 @@ pipeline {
                 sh 'docker run --rm -v "$(pwd):/proj" dxa4481/trufflehog file:///proj --json | tee trufflehog-output.json'
             }
         }
+
+        stage('flake8 stage'){
+            echo "scanning flake8"
+            steps{
+                sh 'flake8 . --format=json --output-file test.json --exit-zero'
+            }
+        }
         
         stage('Building our image') { 
             steps { 
@@ -85,6 +92,9 @@ pipeline {
     post{
             always{
                 archiveArtifacts artifacts: 'bandit-output.json',onlyIfSuccessful:true
+            }
+            always{
+                archiveArtifacts artifacts: 'test.json',onlyIfSuccessful:true
             }
         }
 }
