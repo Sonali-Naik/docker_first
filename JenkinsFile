@@ -1,15 +1,15 @@
 pipeline {
-    environment {
-        registry = "nishanthkp/python-flask-app"
-        registryCredential = "nishanthdockerhubcreds"
-        dockerImage = ''
+    environment { 
+        registry = "sonali137/python-flask-app" 
+        registryCredential = 'sonalidockerid' 
+        dockerImage = '' 
     }
     agent any
     stages {
         stage('Cloning the Code') {
             steps {
                 echo 'Cloning the Code from Git'
-                git branch:'main', url: 'https://github.com/nishanthkumarpathi/python-flask-app.git'
+                git branch:'main', url: 'https://github.com/Sonali-Naik/docker_first.git'
             }
         }
         stage('Testing') {
